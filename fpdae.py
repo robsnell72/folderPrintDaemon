@@ -1,6 +1,8 @@
 from __future__ import print_function
 import httplib2
 import os
+import requests
+import json
 
 from apiclient import discovery
 from oauth2client import client
@@ -24,7 +26,6 @@ logging.info('Logging started...')
 SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly'
 CLIENT_SECRET_FILE = 'client_secret_966801068790-rsok0db4lmig29imghlov1utcg09tpjo.apps.googleusercontent.com.json'
 APPLICATION_NAME = 'Drive API Python Quickstart'
-
 
 def get_credentials():
     """Gets valid user credentials from storage.
@@ -54,6 +55,24 @@ def get_credentials():
         print('Storing credentials to ' + credential_path)
     return credentials
 
+def transfer_text_file(full_path, google_path, auth_token):
+    logging.info("transfering text file %s to %s" % (full_path, google_path))
+    content_length = str(os.path.getsize(full_path))
+    logging.debug("Content-Length: %s" % content_length)
+    headers = {'Content-Type': 'text/html',
+    'Content-Length': content_length,
+    'Authorization': "Bearer %s" % auth_token}
+    
+    with open(full_path, 'r') as myfile:
+        r = requests.post('https://www.googleapis.com/upload/drive/v3?uploadType=media HTTP/1.1', data = myfile, headers = headers)
+        logging.info(r)
+
+def transfer_pdf_file(full_path, google_path, auth_token):
+    logging.info("transfering pdf file %s to %s" % (full_path, google_path))
+
+def transfer_arbitrary_file(full_path, google_path, auth_token):
+    logging.info("transfering arbitrary file %s to %s" % (full_path, google_path))
+
 def main():
     """Shows basic usage of the Google Drive API.
 
@@ -78,6 +97,24 @@ def main():
     mypath = r"C:\temp\2Print"
     onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
     logging.info(onlyfiles)
+    
+    #get auth token
+    auth_token = ""
+    with open(CLIENT_SECRET_FILE) as data_file:    
+        data = json.load(data_file)
+        logging.debug(data)
+        auth_token = data["installed"]["client_secret"]
+        logging.debug("auth_token:%s" % auth_token)
+
+    google_path = "Rob/2017/2Print"
+    for file in onlyfiles:
+        full_path = os.path.join(mypath, file)
+        if file.endswith(".txt"):
+            transfer_text_file(full_path, google_path, auth_token)
+        elif file.endswith(".pdf"):
+            transfer_pdf_file(full_path, google_path, auth_token)
+        else:
+            transfer_arbitrary_file(full_path, google_path, auth_token)
 
 if __name__ == '__main__':
     main()
